@@ -2,10 +2,17 @@ import requests
 from urllib.parse import urlparse
 
 def get_response(url):
+    """
+    Handles requests and returns the final response object
+
+    Returns (response) or
+            (None) on error
+    """
     try:
         headers = {'User-Agent': 'SimpleScanner/0.1'}
         response = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
         response.raise_for_status()
+
         return response
     except requests.exceptions.RequestException as e:
         print(f"[!] Error fetching {url}: {e}")
@@ -15,6 +22,9 @@ def get_response(url):
         return None
 
 def check_https(initial_url, final_url):
+    """
+    Checks if site uses HTTPS
+    """
     result = []
     parsed_inital = urlparse(initial_url)
     parsed_final = urlparse(final_url)
@@ -38,6 +48,9 @@ def check_https(initial_url, final_url):
     return result
 
 def check_headers(headers):
+    """
+    Checks for common security headers
+    """
     result = []
 
     header_checks = {
@@ -86,6 +99,7 @@ def check_headers(headers):
 
     return result
 
+# probable merge this into check_headers
 def check_server_header_disclosure(headers):
     result = []
     server_header = headers.get('Server')
