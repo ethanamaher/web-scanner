@@ -19,7 +19,7 @@ def print_report(target_url, results):
         print(f"\n{Fore.YELLOW}No issues found or scanning failed.{Style.RESET_ALL}")
         return
 
-    sorted_results = sorted(results, key=lambda x: (SEVERITY_ORDER.get(x.get('severity', 'Info'), 99), x.get('id', '')))
+    sorted_results = sorted(results, key=lambda x: (SEVERITY_ORDER.get(x.get('severity', 'INFO'), 99), x.get('id', '')))
 
     for r in results:
         severity = r.get('severity', 'Info')

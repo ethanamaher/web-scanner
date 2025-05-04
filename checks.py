@@ -1,5 +1,6 @@
 import requests
 from urllib.parse import urlparse, urljoin
+import re
 
 COMMON_FILES = [
     ".git/config",
@@ -20,7 +21,7 @@ COMMON_DIRS = [
     "/admin/",
 ]
 
-def get_response(url):
+def get_response(url, method='get', timeout=10):
     """
     Handles requests and returns the final response object
 
@@ -29,7 +30,7 @@ def get_response(url):
     """
     try:
         headers = {'User-Agent': 'SimpleScanner/0.1'}
-        response = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
+        response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
         response.raise_for_status()
 
         return response
@@ -158,9 +159,9 @@ def check_cookies(response_cookies):
         details = []
         if not cookie.secure:
             result.append({
-                'id': 'COOKIE_{name}_NO_SECURE',
+                'id': f'COOKIE_{name}_NO_SECURE',
                 'severity': 'MEDIUM',
-                'description': 'Cookie {name} is missing Secure flag',
+                'description': f'Cookie {name} is missing Secure flag',
                 'recommendation': 'Add secure flag'
             })
 
@@ -231,24 +232,75 @@ def check_cookies(response_cookies):
 
     return result
 
+def check_common_dirs(url):
+    result = []
+    base_url = urlparse(url)
+    dirs = set(COMMON_DIRS)
+    if base_url.path and base_url.path != '/':
+        cur = base_url.path
+        if not cur.endswith('/'):
+            cur += '/'
+        dirs.add(cur)
+
+    print(f'[*] Checking on {len(dirs)} paths')
+    url = str(base_url.scheme + '://' + base_url.netloc + base_url.path)
+
+    for path in dirs:
+        try:
+            full_url = urljoin(url, path)
+            response = get_response(full_url, method='get', timeout=5)
+            if path != '/' and full_url == base_url:
+                continue
+
+            if response and response.status_code == 200:
+                content = response.headers.get('Content-Type', '').lower()
+
+                if 'text/html' in content:
+                    html = response.text[:1024]
+                    response.close()
+
+                    if re.search(r'<title>Index of /.*</title>', html, re.IGNORECASE):
+                        result.append({
+                            'id': 'DIR_LISTING_ENABLED',
+                            'severity': 'MEDIUM',
+                            'description': f'Directory listing enabled for {path}',
+                            'recommendation': 'Consider disabling directory listings'
+                        })
+            elif response:
+                response.close()
+        except Exception as e:
+            print(f'[!] Error checking directory {path}: {e}')
+            if 'response' in locals() and response: response.close()
+
+    if not any(['id'] == 'DIR_LISTING_ENABLED' for r in result):
+        result.append({
+            'id': 'DIR_LISTING_CHECKED',
+            'severity': 'INFO',
+            'description': 'No directory listings found',
+            'recommendation': 'Check directory listing disabled server-wide'
+        })
+
+
+    return result
+
 def check_common_files(url):
     result = []
     for path in COMMON_FILES:
         full_url = urljoin(url, path)
         try:
-            _, head_response = get_response(full_url, method='head', timeout=5)
+            head_response = get_response(full_url, method='head', timeout=5)
 
             if head_response and head_response.status_code == 200:
                 result.append({
                     'id': f'SENSITIVE_FILE_{path.replace("/", "_").replace(".", "_")}',
                     'severity': 'HIGH',
                     'description': f'Potentially senstive file at {full_url}',
-                    'recommendation': f'Restrict access tp {path}',
+                    'recommendation': f'Restrict access to {path}',
                 })
         except Exception as e:
             print(f'[!] Error checking for file {full_url}: {e}')
 
-    if not any(f['severity'] == 'HIGH' for r in result):
+    if not any(['severity'] == 'HIGH' for r in result):
         result.append({
             'id': f'SENSITIVE_FILES_CHECKED',
             'severity': 'INFO',

@@ -7,7 +7,8 @@ from checks import (
     check_headers,
     check_server_header_disclosure,
     check_cookies,
-    check_common_files
+    check_common_files,
+    check_common_dirs
 )
 
 from report import print_report
@@ -41,9 +42,9 @@ def main():
     print(f"[*] Starting scan on {target_url}")
 
     response = get_response(target_url)
-
     if not response:
         print(f"[!] Scan aborted")
+        return
 
     final_url = response.url
 
@@ -63,6 +64,8 @@ def main():
 
     print(f"[*] Checking for common files...")
     findings.extend(check_common_files(final_url))
+
+    findings.extend(check_common_dirs(final_url))
 
     print_report(final_url or target_url, findings)
 if __name__ == "__main__":
