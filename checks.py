@@ -1,5 +1,24 @@
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
+
+COMMON_FILES = [
+    ".git/config",
+    ".env",
+    "wp-config.php.bak",
+    "WEB-INF/web.xml",
+    "appsettings.json",
+    "config/database.yml",
+    "configuaration.php-dist",
+]
+
+COMMON_DIRS = [
+    "/",
+    "/images/",
+    "/css/",
+    "/js/",
+    "/uploads/",
+    "/admin/",
+]
 
 def get_response(url):
     """
@@ -209,5 +228,32 @@ def check_cookies(response_cookies):
                 'description': f'Cookie {name} appears to be configured',
                 'recommendation': 'None'
             })
+
+    return result
+
+def check_common_files(url):
+    result = []
+    for path in COMMON_FILES:
+        full_url = urljoin(url, path)
+        try:
+            _, head_response = get_response(full_url, method='head', timeout=5)
+
+            if head_response and head_response.status_code == 200:
+                result.append({
+                    'id': f'SENSITIVE_FILE_{path.replace("/", "_").replace(".", "_")}',
+                    'severity': 'High',
+                    'description': f'Potentially senstive file at {full_url}',
+                    'recommendation': f'Restrict access tp {path}',
+                })
+        except Exception as e:
+            print(f'[!] Error checking for file {full_url}: {e}')
+
+    if not any(f['severity'] == 'High' for r in result):
+        result.append({
+            'id': f'SENSITIVE_FILES_CHECKED',
+            'severity': 'INFO',
+            'description': f'No sensitive files found',
+            'recommendation': f'N/A',
+        })
 
     return result

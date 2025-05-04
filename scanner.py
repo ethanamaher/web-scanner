@@ -6,7 +6,8 @@ from checks import (
     check_https,
     check_headers,
     check_server_header_disclosure,
-    check_cookies
+    check_cookies,
+    check_common_files
 )
 
 from report import print_report
@@ -55,7 +56,13 @@ def main():
     headers = response.headers
     findings.extend(check_headers(headers))
     findings.extend(check_server_header_disclosure(headers))
+    print(f"[*] Analyzing cookies...")
     findings.extend(check_cookies(response.cookies))
+
+    response.close()
+
+    print(f"[*] Checking for common files...")
+    findings.extend(check_common_files(final_url))
 
     print_report(final_url or target_url, findings)
 if __name__ == "__main__":
