@@ -13,15 +13,7 @@ from checks import (
 
 from report import print_report
 
-ETHICAL_WARNING = '''
-    ETHICAL NOTICE
-
-    HERE
-'''
-
 def main():
-    print(ETHICAL_WARNING)
-
     parser = argparse.ArgumentParser(description="Security Scanner")
     parser.add_argument("url", help="target url")
     args = parser.parse_args()
