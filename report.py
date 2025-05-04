@@ -16,10 +16,10 @@ def print_report(target_url, results):
     print(f"\n{Style.BRIGHT}==== Report for: {target_url} ===={Style.RESET_ALL}")
 
     if not results:
-        print(f"\n{Fore.GREEN}No issues found or scanning failed.{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}No issues found or scanning failed.{Style.RESET_ALL}")
         return
 
-    sorted_results = sorted(results, key=lambda x: SEVERITY_ORDER.get(x.get('severity', 'Info'), 99))
+    sorted_results = sorted(results, key=lambda x: (SEVERITY_ORDER.get(x.get('severity', 'Info'), 99), x.get('id', '')))
 
     for r in results:
         severity = r.get('severity', 'Info')

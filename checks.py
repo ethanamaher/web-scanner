@@ -125,3 +125,89 @@ def check_server_header_disclosure(headers):
         })
 
     return result
+
+def check_cookies(response_cookies):
+    """
+    Check Set-Cookie attributes
+    """
+    result = []
+    if not response_cookies:
+        return result
+
+    for cookie in response_cookies:
+        name = cookie.name
+        details = []
+        if not cookie.secure:
+            result.append({
+                'id': 'COOKIE_{name}_NO_SECURE',
+                'severity': 'Medium',
+                'description': 'Cookie {name} is missing Secure flag',
+                'recommendation': 'Add secure flag'
+            })
+
+
+        # HTTP Only check
+        is_httponly = False
+        if hasattr(cookie, '_rest'):
+            for key in cookie._rest:
+                if key.strip().lower() == 'httponly':
+                    is_httponly = True
+                    break
+
+        if not is_httponly:
+            result.append({
+                'id': f'COOKIE_{name}_NO_HTTPONLY',
+                'severity': 'Medium',
+                'description': f'Cookie {name} is missing HttpOnly flag',
+                'recommendation': 'Add HttpOnly Flag'
+            })
+
+
+        # SameSite check
+        samesite_val = None
+        samesite_key_found = None
+        if hasattr(cookie, '_rest'):
+             for key, val in cookie._rest.items():
+                 if key.strip().lower() == 'samesite':
+                     samesite_val = val
+                     samesite_key_found = key
+                     break
+
+        if samesite_val is None:
+            result.append({
+                'id': f'COOKIE_{name}_SAMESITE_MISSING',
+                'severity': 'Medium',
+                'description': f'Cookie {name} is missing the SameSite attribute',
+                'recommendation': 'Set SameSite=Lax or SameSite=Strict to mitigate CSRF attacks'
+            })
+        else:
+            samesite_lower = samesite_val.strip().lower()
+
+            if samesite_lower == 'none':
+                severity = 'Medium' if not cookie.secure else 'Low'
+                desc = f'Cookie {name} uses SameSite=None'
+                if not cookie.secure:
+                    desc += ' without the required Secure flag.'
+                result.append({
+                    'id': f'COOKIE_{name}_SAMESITE_NONE',
+                    'severity': severity,
+                    'description': desc,
+                    'recommendation': 'SameSite=None allows cross-site usage'
+                })
+            elif samesite_lower not in ('lax', 'strict'):
+                 result.append({
+                    'id': f'COOKIE_{name}_SAMESITE_UNEXPECTED',
+                    'severity': 'Low',
+                    'description': f'Cookie {name} has an unexpected SameSite value ({samesite_val}).',
+                    'recommendation': f'Review the SameSite attribute value ({samesite_key_found}={samesite_val})'
+                })
+
+        if not details:
+            result.append({
+                'id': f'COOKIE_{name}_SECURE_CONFIG',
+                'severity': 'INFO',
+                'description': f'Cookie {name} appears to be configured',
+                'recommendation': 'None'
+            })
+
+    return result

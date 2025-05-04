@@ -5,7 +5,8 @@ from checks import (
     get_response,
     check_https,
     check_headers,
-    check_server_header_disclosure
+    check_server_header_disclosure,
+    check_cookies
 )
 
 from report import print_report
@@ -54,6 +55,7 @@ def main():
     headers = response.headers
     findings.extend(check_headers(headers))
     findings.extend(check_server_header_disclosure(headers))
+    findings.extend(check_cookies(response.cookies))
 
     print_report(final_url or target_url, findings)
 if __name__ == "__main__":
