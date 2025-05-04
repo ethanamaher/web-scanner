@@ -127,13 +127,13 @@ def check_server_header_disclosure(headers):
         if any(char.isdigit() for char in server_header):
             result.append({
                 'id': 'SERVER_DISCLOSURE',
-                'severity': 'Low',
+                'severity': 'LOW',
                 'description': f'Server header {server_header} may reveal specific version info',
             })
         else:
             result.append({
                 'id': 'SERVER_HEADER_GENERIC',
-                'severity': 'Info',
+                'severity': 'INFO',
                 'description': f'Server header {server_header}',
             })
     else:
@@ -159,7 +159,7 @@ def check_cookies(response_cookies):
         if not cookie.secure:
             result.append({
                 'id': 'COOKIE_{name}_NO_SECURE',
-                'severity': 'Medium',
+                'severity': 'MEDIUM',
                 'description': 'Cookie {name} is missing Secure flag',
                 'recommendation': 'Add secure flag'
             })
@@ -176,7 +176,7 @@ def check_cookies(response_cookies):
         if not is_httponly:
             result.append({
                 'id': f'COOKIE_{name}_NO_HTTPONLY',
-                'severity': 'Medium',
+                'severity': 'MEDIUM',
                 'description': f'Cookie {name} is missing HttpOnly flag',
                 'recommendation': 'Add HttpOnly Flag'
             })
@@ -195,7 +195,7 @@ def check_cookies(response_cookies):
         if samesite_val is None:
             result.append({
                 'id': f'COOKIE_{name}_SAMESITE_MISSING',
-                'severity': 'Medium',
+                'severity': 'MEDIUM',
                 'description': f'Cookie {name} is missing the SameSite attribute',
                 'recommendation': 'Set SameSite=Lax or SameSite=Strict to mitigate CSRF attacks'
             })
@@ -203,7 +203,7 @@ def check_cookies(response_cookies):
             samesite_lower = samesite_val.strip().lower()
 
             if samesite_lower == 'none':
-                severity = 'Medium' if not cookie.secure else 'Low'
+                severity = 'MEDIUM' if not cookie.secure else 'LOW'
                 desc = f'Cookie {name} uses SameSite=None'
                 if not cookie.secure:
                     desc += ' without the required Secure flag.'
@@ -216,7 +216,7 @@ def check_cookies(response_cookies):
             elif samesite_lower not in ('lax', 'strict'):
                  result.append({
                     'id': f'COOKIE_{name}_SAMESITE_UNEXPECTED',
-                    'severity': 'Low',
+                    'severity': 'LOW',
                     'description': f'Cookie {name} has an unexpected SameSite value ({samesite_val}).',
                     'recommendation': f'Review the SameSite attribute value ({samesite_key_found}={samesite_val})'
                 })
@@ -241,14 +241,14 @@ def check_common_files(url):
             if head_response and head_response.status_code == 200:
                 result.append({
                     'id': f'SENSITIVE_FILE_{path.replace("/", "_").replace(".", "_")}',
-                    'severity': 'High',
+                    'severity': 'HIGH',
                     'description': f'Potentially senstive file at {full_url}',
                     'recommendation': f'Restrict access tp {path}',
                 })
         except Exception as e:
             print(f'[!] Error checking for file {full_url}: {e}')
 
-    if not any(f['severity'] == 'High' for r in result):
+    if not any(f['severity'] == 'HIGH' for r in result):
         result.append({
             'id': f'SENSITIVE_FILES_CHECKED',
             'severity': 'INFO',
